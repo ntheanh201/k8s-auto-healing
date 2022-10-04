@@ -6,6 +6,6 @@ import (
 
 type (
 	PostgresChecking interface {
-		UpsertData(name string) (entity.CheckEntity, error)
+		UpsertCheckingData(name string) (entity.CheckEntity, error)
 	}
 )

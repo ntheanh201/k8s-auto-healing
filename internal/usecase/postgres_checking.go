@@ -8,7 +8,7 @@ type PostgresCheckingUseCase struct {
 	postgresCheckingOrm entity.CheckEntityOrm
 }
 
-func (p *PostgresCheckingUseCase) UpsertData(name string) (entity.CheckEntity, error) {
+func (p *PostgresCheckingUseCase) UpsertCheckingData(name string) (entity.CheckEntity, error) {
 	data, err := p.postgresCheckingOrm.UpsertData(name)
 	if err != nil {
 		return entity.CheckEntity{}, err

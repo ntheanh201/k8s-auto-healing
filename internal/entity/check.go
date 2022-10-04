@@ -1,8 +1,8 @@
 package entity
 
 import (
-	"fmt"
 	"gorm.io/gorm"
+	"log"
 	"time"
 )
 
@@ -21,9 +21,17 @@ type CheckEntityOrm interface {
 }
 
 func (c *checkPostgresOrm) UpsertData(name string) (checkEntity CheckEntity, err error) {
-	fmt.Println(name)
 	checking := CheckEntity{Name: name}
-	if c.db.Model(&checking).Where("name = ?", name).Updates(&checking).RowsAffected == 0 {
+	updated := c.db.Model(&checking).Where("name = ?", name).Updates(&checking)
+
+	err = updated.Error
+	if err != nil {
+		log.Println("Error while upsert data to db")
+		log.Println(err)
+		return CheckEntity{}, err
+	}
+
+	if updated.RowsAffected == 0 {
 		c.db.Create(&checking)
 	}
 	return checking, nil
