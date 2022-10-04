@@ -9,7 +9,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"log"
-	healingConfig "onroad-k8s-auto-healing/config"
 	"onroad-k8s-auto-healing/internal/usecase"
 	"time"
 )
@@ -19,7 +18,7 @@ const (
 	PostgresPoolerDeployment = "ccp-postgres-pooler"
 )
 
-func NewHandlePostgresCheckingJob(cfg *healingConfig.Config, p usecase.PostgresChecking) bool {
+func NewHandlePostgresCheckingJob(p usecase.PostgresChecking) bool {
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {

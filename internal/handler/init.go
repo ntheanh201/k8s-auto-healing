@@ -18,14 +18,14 @@ type dbEntity struct {
 	PostgresCheckingOrm entity.CheckEntityOrm
 }
 
-func NewHandler(config *config.Config) (module *Module, err error) {
+func NewHandler() (module *Module, err error) {
 	// Initialize DB
 	var db *gorm.DB
 
 	db, err = gorm.Open(postgres.Open(
 		fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmode=disable",
-			config.Db.Host, config.Db.Port, config.Db.Database,
-			config.Db.Username, config.Db.Password),
+			config.AppConfig.Db.Host, config.AppConfig.Db.Port, config.AppConfig.Db.Database,
+			config.AppConfig.Db.Username, config.AppConfig.Db.Password),
 	), &gorm.Config{})
 	if err != nil {
 		log.Println("[INIT] failed connecting to PostgreSQL")

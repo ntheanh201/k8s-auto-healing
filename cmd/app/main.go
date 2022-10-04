@@ -1,16 +1,18 @@
 package main
 
 import (
-	"log"
+	"github.com/gin-gonic/gin"
 	"onroad-k8s-auto-healing/config"
 	"onroad-k8s-auto-healing/internal/app"
 )
 
-func main() {
-	cfg, err := config.NewConfig()
-	if err != nil {
-		log.Fatalf("config error: %s", err)
+func init() {
+	config.InitializeAppConfig()
+	if !config.AppConfig.Debug {
+		gin.SetMode(gin.ReleaseMode)
 	}
+}
 
-	app.Run(cfg)
+func main() {
+	app.Run()
 }

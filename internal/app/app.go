@@ -14,20 +14,20 @@ import (
 	"syscall"
 )
 
-func Run(cfg *config.Config) {
-	h, err := healingHandler.NewHandler(cfg)
+func Run() {
+	h, err := healingHandler.NewHandler()
 	if err != nil {
 		return
 	}
 
 	postgresCheckingUseCase := usecase.NewPostgresChecking(h.Db.PostgresCheckingOrm)
 
-	_ = healingHandler.NewHandlePostgresCheckingJob(cfg, postgresCheckingUseCase)
+	_ = healingHandler.NewHandlePostgresCheckingJob(postgresCheckingUseCase)
 
 	handler := gin.New()
 	v1.NewRouter(handler)
 
-	httpServer := httpserver.New(handler, httpserver.Port(cfg.Http.Port))
+	httpServer := httpserver.New(handler, httpserver.Port(config.AppConfig.Http.Port))
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)

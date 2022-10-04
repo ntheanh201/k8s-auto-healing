@@ -1,9 +1,11 @@
 package config
 
 import (
-	"fmt"
-	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/spf13/viper"
+	"log"
 )
+
+var AppConfig Config
 
 type App struct {
 	Name    string `yaml:"name"`
@@ -28,22 +30,33 @@ type Log struct {
 }
 
 type Config struct {
-	App  `yaml:"app"`
-	Http `yaml:"http"`
-	Db   DbConfig `yaml:"db"`
-	Log  `yaml:"logger"`
+	App
+	Http
+	Db DbConfig
+	Log
+	Debug       bool
+	Environment string
 }
 
-func NewConfig() (*Config, error) {
-	cfg := &Config{}
-	err := cleanenv.ReadConfig("./config/config.yml", cfg)
-	if err != nil {
-		return nil, fmt.Errorf("config error: %w", err)
-	}
-	err = cleanenv.ReadEnv(cfg)
-	if err != nil {
-		return nil, err
-	}
+func InitializeAppConfig() {
+	viper.SetConfigName("../.env") // allow directly reading from .env file
+	viper.SetConfigType("env")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("./config")
+	viper.AddConfigPath("/")
+	viper.AllowEmptyEnv(true)
+	viper.AutomaticEnv()
+	_ = viper.ReadInConfig()
 
-	return cfg, err
+	AppConfig.Http.Port = viper.GetString("PORT")
+	AppConfig.Environment = viper.GetString("ENVIRONMENT")
+	AppConfig.Debug = viper.GetBool("DEBUG")
+
+	AppConfig.Db.Host = viper.GetString("DB_HOST")
+	AppConfig.Db.Port = viper.GetInt("DB_PORT")
+	AppConfig.Db.Database = viper.GetString("DB_DATABASE")
+	AppConfig.Db.Username = viper.GetString("DB_USERNAME")
+	AppConfig.Db.Password = viper.GetString("DB_PASSWORD")
+
+	log.Println("[INIT] configuration loaded")
 }
