@@ -2,14 +2,17 @@ package handler
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/util/homedir"
 	"log"
 	"onroad-k8s-auto-healing/internal/usecase"
+	"path/filepath"
 	"time"
 )
 
@@ -19,14 +22,18 @@ const (
 )
 
 func NewHandlePostgresCheckingJob(p usecase.PostgresChecking) bool {
-	// creates the in-cluster config
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		log.Println(err.Error())
-		return false
-		//panic(err.Error())
+	var kubeconfig *string
+	if home := homedir.HomeDir(); home != "" {
+		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+	} else {
+		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
 	}
-	// creates the clientset
+	flag.Parse()
+
+	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	if err != nil {
+		panic(err)
+	}
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		log.Println(err.Error())
@@ -38,6 +45,14 @@ func NewHandlePostgresCheckingJob(p usecase.PostgresChecking) bool {
 	newDeployment, err := clientset.AppsV1().Deployments(PostgresNamespace).Patch(context.Background(), PostgresPoolerDeployment, types.StrategicMergePatchType, []byte(data), metav1.PatchOptions{FieldManager: "kubectl-rollout"})
 
 	fmt.Println("new deployment: ", newDeployment)
+	if err != nil {
+		fmt.Printf("Error getting new pooler deployment %v\n", err)
+	}
+
+	data = fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}},"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":"%s","maxSurge": "%s"}}}`, time.Now().String(), "25%", "25%")
+	newOBDeployment, err := clientset.AppsV1().Deployments("app").Patch(context.Background(), "onroad-business", types.StrategicMergePatchType, []byte(data), metav1.PatchOptions{FieldManager: "kubectl-rollout"})
+
+	fmt.Println("new onroad-business deployment: ", newOBDeployment)
 	if err != nil {
 		fmt.Printf("Error getting new pooler deployment %v\n", err)
 	}
