@@ -15,6 +15,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 # Step 3: Final
 FROM scratch
 COPY --from=builder /app/.env /.env
+COPY --from=builder /app/internal/handler/config /config
 COPY --from=builder /bin/app /app
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 CMD ["/app"]

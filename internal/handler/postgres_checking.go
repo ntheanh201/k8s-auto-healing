@@ -8,11 +8,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 	"log"
 	"onroad-k8s-auto-healing/internal/usecase"
-	"path/filepath"
 	"time"
 )
 
@@ -21,16 +21,27 @@ const (
 	PostgresPoolerDeployment = "ccp-postgres-pooler"
 )
 
+func buildConfigFromFlags(context, kubeConfigPath string) (*rest.Config, error) {
+	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeConfigPath},
+		&clientcmd.ConfigOverrides{
+			CurrentContext: context,
+		}).ClientConfig()
+}
+
 func NewHandlePostgresCheckingJob(p usecase.PostgresChecking) bool {
 	var kubeconfig *string
+
 	if home := homedir.HomeDir(); home != "" {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
+		fmt.Println("home dir: ", home)
+		// TODO-anhnt645: make config secrets
+		kubeconfig = flag.String("dev-super-vcar-developer", "./config", "(optional) absolute path to the kubeconfig file")
 	} else {
-		kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+		kubeconfig = flag.String("dev-super-vcar-developer", "", "absolute path to the kubeconfig file")
 	}
 	flag.Parse()
 
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	config, err := buildConfigFromFlags("dev-vcar-developer", *kubeconfig)
 	if err != nil {
 		panic(err)
 	}
@@ -41,22 +52,23 @@ func NewHandlePostgresCheckingJob(p usecase.PostgresChecking) bool {
 		return false
 	}
 
-	data := fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}},"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":"%s","maxSurge": "%s"}}}`, time.Now().String(), "25%", "25%")
-	newDeployment, err := clientset.AppsV1().Deployments(PostgresNamespace).Patch(context.Background(), PostgresPoolerDeployment, types.StrategicMergePatchType, []byte(data), metav1.PatchOptions{FieldManager: "kubectl-rollout"})
+	//data := fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}},"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":"%s","maxSurge": "%s"}}}`, time.Now().String(), "25%", "25%")
+	//newDeployment, err := clientset.AppsV1().Deployments(PostgresNamespace).Patch(context.Background(), PostgresPoolerDeployment, types.StrategicMergePatchType, []byte(data), metav1.PatchOptions{FieldManager: "kubectl-rollout"})
+	//
+	//fmt.Println("new deployment: ", newDeployment)
+	//if err != nil {
+	//	fmt.Printf("Error getting new pooler deployment %v\n", err)
+	//}
+	//
+	//data = fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}},"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":"%s","maxSurge": "%s"}}}`, time.Now().String(), "25%", "25%")
+	//newOBDeployment, err := clientset.AppsV1().Deployments("app").Patch(context.Background(), "onroad-business", types.StrategicMergePatchType, []byte(data), metav1.PatchOptions{FieldManager: "kubectl-rollout"})
+	//
+	//fmt.Println("new onroad-business deployment: ", newOBDeployment)
+	//if err != nil {
+	//	fmt.Printf("Error getting new pooler deployment %v\n", err)
+	//}
 
-	fmt.Println("new deployment: ", newDeployment)
-	if err != nil {
-		fmt.Printf("Error getting new pooler deployment %v\n", err)
-	}
-
-	data = fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}},"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":"%s","maxSurge": "%s"}}}`, time.Now().String(), "25%", "25%")
-	newOBDeployment, err := clientset.AppsV1().Deployments("app").Patch(context.Background(), "onroad-business", types.StrategicMergePatchType, []byte(data), metav1.PatchOptions{FieldManager: "kubectl-rollout"})
-
-	fmt.Println("new onroad-business deployment: ", newOBDeployment)
-	if err != nil {
-		fmt.Printf("Error getting new pooler deployment %v\n", err)
-	}
-
+	// TODO-anhnt645: do CronJob
 	for {
 		// get pods in all the namespaces by omitting namespace
 		// Or specify namespace to get pods in particular namespace
