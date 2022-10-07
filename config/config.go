@@ -10,7 +10,7 @@ var AppConfig Config
 type App struct {
 	Name           string `yaml:"name"`
 	Version        string `yaml:"version"`
-	TZ             string
+	TZ             string ``
 	ClusterContext string
 }
 

@@ -23,7 +23,7 @@ func NewHandler() (module *Module, err error) {
 	var db *gorm.DB
 
 	db, err = gorm.Open(postgres.Open(
-		fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s",
+		fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s statement_cache_mode=describe",
 			config.AppConfig.Db.Host, config.AppConfig.Db.Port, config.AppConfig.Db.Database,
 			config.AppConfig.Db.Username, config.AppConfig.Db.Password),
 	), &gorm.Config{})

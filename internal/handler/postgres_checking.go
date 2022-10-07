@@ -74,7 +74,7 @@ func handleUpsertData(clientSet *kubernetes.Clientset, p usecase.PostgresCheckin
 			panic(err.Error())
 		} else {
 			fmt.Printf("Found %s deployment in %s namespace\n", PostgresPoolerDeployment, PostgresNamespace)
-			//restartPostgresDeployment(clientSet)
+			restartPostgresDeployment(clientSet)
 		}
 
 	}
@@ -82,15 +82,10 @@ func handleUpsertData(clientSet *kubernetes.Clientset, p usecase.PostgresCheckin
 }
 
 func runCronJob(clientSet *kubernetes.Clientset, p usecase.PostgresChecking) {
-	location, err := time.LoadLocation(config.AppConfig.App.TZ)
+	s := gocron.NewScheduler(time.UTC)
 
-	if err != nil {
-		fmt.Printf("Cannot get TZ from ENV")
-	}
-
-	s := gocron.NewScheduler(location)
-
-	s.Every(2).Minute().Do(func() {
+	// run every 5 minutes
+	s.Every(5).Minute().Do(func() {
 		handleUpsertData(clientSet, p)
 	})
 
@@ -98,7 +93,7 @@ func runCronJob(clientSet *kubernetes.Clientset, p usecase.PostgresChecking) {
 }
 
 func NewHandlePostgresCheckingJob(p usecase.PostgresChecking) {
-	kubeConfig := flag.String("dev-super-vcar-developer", "./config", "(optional) absolute path to the kubeconfig file")
+	kubeConfig := flag.String("dev-super-vcar-developer", "./kube-config", "(optional) absolute path to the kubeconfig file")
 	flag.Parse()
 
 	clusterContext := config.AppConfig.ClusterContext

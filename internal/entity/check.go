@@ -11,6 +11,7 @@ type checkPostgresOrm struct {
 }
 
 type CheckEntity struct {
+	Id        int       `json:"id"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"-"`
 	UpdatedAt time.Time `gorm:"autoUpdateTime" json:"-"`
@@ -21,8 +22,8 @@ type CheckEntityOrm interface {
 }
 
 func (c *checkPostgresOrm) UpsertData(name string) (checkEntity CheckEntity, err error) {
-	checking := CheckEntity{Name: name}
-	updated := c.db.Model(&checking).Where("name = ?", name).Updates(&checking)
+	checking := CheckEntity{Name: name, Id: 1}
+	updated := c.db.Model(&checking).Where("id = ?", checking.Id).Updates(&checking)
 
 	err = updated.Error
 	if err != nil {
