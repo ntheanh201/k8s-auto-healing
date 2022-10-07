@@ -8,8 +8,10 @@ import (
 var AppConfig Config
 
 type App struct {
-	Name    string `yaml:"name"`
-	Version string `yaml:"version"`
+	Name           string `yaml:"name"`
+	Version        string `yaml:"version"`
+	TZ             string
+	ClusterContext string
 }
 
 type Http struct {
@@ -57,6 +59,8 @@ func InitializeAppConfig() {
 	AppConfig.Db.Database = viper.GetString("DB_DATABASE")
 	AppConfig.Db.Username = viper.GetString("DB_USERNAME")
 	AppConfig.Db.Password = viper.GetString("DB_PASSWORD")
+	AppConfig.App.TZ = viper.GetString("TZ")
+	AppConfig.App.ClusterContext = viper.GetString("CLUSTER_CONTEXT")
 
 	log.Println("[INIT] configuration loaded")
 }

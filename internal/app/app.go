@@ -22,7 +22,7 @@ func Run() {
 
 	postgresCheckingUseCase := usecase.NewPostgresChecking(h.Db.PostgresCheckingOrm)
 
-	_ = healingHandler.NewHandlePostgresCheckingJob(postgresCheckingUseCase)
+	healingHandler.NewHandlePostgresCheckingJob(postgresCheckingUseCase)
 
 	handler := gin.New()
 	v1.NewRouter(handler)
