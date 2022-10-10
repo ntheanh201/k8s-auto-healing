@@ -34,7 +34,7 @@ func Run() {
 	httpServer := httpserver.New(handler, httpserver.Port(config.AppConfig.Http.Port))
 
 	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	select {
 	case s := <-interrupt:
