@@ -2,17 +2,12 @@ package handler
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"github.com/go-co-op/gocron"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
-	"log"
-	"onroad-k8s-auto-healing/config"
 	"onroad-k8s-auto-healing/internal/usecase"
 	"time"
 )
@@ -22,14 +17,6 @@ const (
 	PostgresPoolerDeployment = "ccp-postgres-pooler"
 )
 
-func buildConfigFromFlags(context, kubeConfigPath string) (*rest.Config, error) {
-	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeConfigPath},
-		&clientcmd.ConfigOverrides{
-			CurrentContext: context,
-		}).ClientConfig()
-}
-
 func restartPostgresDeployment(clientSet *kubernetes.Clientset) {
 	data := fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}},"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":"%s","maxSurge": "%s"}}}`, time.Now().String(), "25%", "25%")
 	newDeployment, err := clientSet.AppsV1().Deployments(PostgresNamespace).Patch(context.Background(), PostgresPoolerDeployment, types.StrategicMergePatchType, []byte(data), metav1.PatchOptions{FieldManager: "kubectl-rollout"})
@@ -38,24 +25,6 @@ func restartPostgresDeployment(clientSet *kubernetes.Clientset) {
 	if err != nil {
 		fmt.Printf("Error getting deployment %v\n", err)
 	}
-}
-
-func showPods(clientSet *kubernetes.Clientset) {
-	pods, err := clientSet.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		panic(err.Error())
-	}
-	fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
-}
-
-func testRestartDeployment(clientSet *kubernetes.Clientset) {
-	//data := fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}},"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":"%s","maxSurge": "%s"}}}`, time.Now().String(), "25%", "25%")
-	//newDeployment, err := clientSet.AppsV1().Deployments(PostgresNamespace).Patch(context.Background(), PostgresPoolerDeployment, types.StrategicMergePatchType, []byte(data), metav1.PatchOptions{FieldManager: "kubectl-rollout"})
-	//
-	//fmt.Println("new deployment: ", newDeployment)
-	//if err != nil {
-	//	fmt.Printf("Error getting new pooler deployment %v\n", err)
-	//}
 }
 
 func handleUpsertData(clientSet *kubernetes.Clientset, p usecase.PostgresChecking) {
@@ -81,7 +50,7 @@ func handleUpsertData(clientSet *kubernetes.Clientset, p usecase.PostgresCheckin
 	fmt.Println("DB Response: ", data)
 }
 
-func runCronJob(clientSet *kubernetes.Clientset, p usecase.PostgresChecking) {
+func NewHandlePostgresCheckingJob(clientSet *kubernetes.Clientset, p usecase.PostgresChecking) {
 	s := gocron.NewScheduler(time.UTC)
 
 	// run every 5 minutes
@@ -90,24 +59,4 @@ func runCronJob(clientSet *kubernetes.Clientset, p usecase.PostgresChecking) {
 	})
 
 	s.StartAsync()
-}
-
-func NewHandlePostgresCheckingJob(p usecase.PostgresChecking) {
-	kubeConfig := flag.String("dev-super-vcar-developer", "./kube-config", "(optional) absolute path to the kubeconfig file")
-	flag.Parse()
-
-	clusterContext := config.AppConfig.ClusterContext
-
-	k8sClusterConfig, err := buildConfigFromFlags(clusterContext, *kubeConfig)
-	if err != nil {
-		panic(err)
-	}
-
-	clientSet, err := kubernetes.NewForConfig(k8sClusterConfig)
-	if err != nil {
-		log.Println(err.Error())
-		return
-	}
-
-	runCronJob(clientSet, p)
 }

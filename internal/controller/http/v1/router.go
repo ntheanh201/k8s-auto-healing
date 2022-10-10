@@ -13,4 +13,8 @@ func NewRouter(handler *gin.Engine) {
 		context.Status(http.StatusOK)
 	})
 
+	h := handler.Group("/")
+	{
+		NewWebhookRoutes(h)
+	}
 }

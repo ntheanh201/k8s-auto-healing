@@ -22,7 +22,11 @@ func Run() {
 
 	postgresCheckingUseCase := usecase.NewPostgresChecking(h.Db.PostgresCheckingOrm)
 
-	healingHandler.NewHandlePostgresCheckingJob(postgresCheckingUseCase)
+	clientSet := healingHandler.NewClientSetCluster()
+	if clientSet != nil {
+		healingHandler.NewHandlePostgresCheckingJob(clientSet, postgresCheckingUseCase)
+		healingHandler.NewFluentBitHandler(clientSet)
+	}
 
 	handler := gin.New()
 	v1.NewRouter(handler)
