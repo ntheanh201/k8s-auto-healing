@@ -6,6 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"log"
 )
 
 func handleDeleteThingsboardRuleEnginePod(clientSet *kubernetes.Clientset, podName, namespace string) {
@@ -18,10 +19,10 @@ func handleDeleteThingsboardRuleEnginePod(clientSet *kubernetes.Clientset, podNa
 		panic(err.Error())
 	} else {
 		fmt.Printf("Found %s Pod in %s namespace\n", podName, namespace)
-		//err = clientSet.CoreV1().Pods(namespace).Delete(context.TODO(), podName, metav1.DeleteOptions{})
-		//if err != nil {
-		//	log.Fatal(err)
-		//}
+		err = clientSet.CoreV1().Pods(namespace).Delete(context.TODO(), podName, metav1.DeleteOptions{})
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
