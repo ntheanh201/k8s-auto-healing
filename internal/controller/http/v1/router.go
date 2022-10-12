@@ -2,11 +2,11 @@ package v1
 
 import (
 	"github.com/gin-gonic/gin"
+	"k8s.io/client-go/kubernetes"
 	"net/http"
-	gin_prometheus "onroad-k8s-auto-healing/gin-prometheus"
 )
 
-func NewRouter(handler *gin.Engine) {
+func NewRouter(handler *gin.Engine, clientSet *kubernetes.Clientset) {
 	handler.Use(gin.Logger())
 	handler.Use(gin.Recovery())
 
@@ -14,11 +14,8 @@ func NewRouter(handler *gin.Engine) {
 		context.Status(http.StatusOK)
 	})
 
-	p := gin_prometheus.NewPrometheus("gin")
-	p.Use(handler)
-
 	h := handler.Group("/")
 	{
-		NewWebhookRoutes(h)
+		NewWebhookRoutes(h, clientSet)
 	}
 }
