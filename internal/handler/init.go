@@ -24,6 +24,10 @@ type dbEntity struct {
 	PostgresCheckingOrm entity.CheckEntityOrm
 }
 
+type ClusterClient struct {
+	ClientSet *kubernetes.Clientset
+}
+
 func buildConfigFromFlags(context, kubeConfigPath string) (*rest.Config, error) {
 	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
 		&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeConfigPath},
@@ -50,7 +54,7 @@ func testRestartDeployment(clientSet *kubernetes.Clientset) {
 	//}
 }
 
-func NewClientSetCluster() *kubernetes.Clientset {
+func NewClientSetCluster() *ClusterClient {
 	kubeConfig := flag.String("dev-super-vcar-developer", "./kube-config", "(optional) absolute path to the kubeconfig file")
 	flag.Parse()
 
@@ -69,7 +73,7 @@ func NewClientSetCluster() *kubernetes.Clientset {
 		log.Println(err.Error())
 		return nil
 	}
-	return clientSet
+	return &ClusterClient{ClientSet: clientSet}
 }
 
 func NewHandler() (module *Module, err error) {

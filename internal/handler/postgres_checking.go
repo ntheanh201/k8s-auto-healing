@@ -50,12 +50,12 @@ func handleUpsertData(clientSet *kubernetes.Clientset, p usecase.PostgresCheckin
 	fmt.Println("DB Response: ", data)
 }
 
-func NewHandlePostgresCheckingJob(clientSet *kubernetes.Clientset, p usecase.PostgresChecking) {
+func (c *ClusterClient) NewHandlePostgresCheckingJob(p usecase.PostgresChecking) {
 	s := gocron.NewScheduler(time.UTC)
 
 	// run every 5 minutes
 	s.Every(5).Minute().Do(func() {
-		handleUpsertData(clientSet, p)
+		handleUpsertData(c.ClientSet, p)
 	})
 
 	s.StartAsync()

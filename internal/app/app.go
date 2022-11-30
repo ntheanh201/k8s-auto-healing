@@ -24,14 +24,14 @@ func Run() {
 
 	postgresCheckingUseCase := usecase.NewPostgresChecking(h.Db.PostgresCheckingOrm)
 
-	clientSet := healingHandler.NewClientSetCluster()
-	if clientSet != nil {
-		healingHandler.NewHandlePostgresCheckingJob(clientSet, postgresCheckingUseCase)
-		healingHandler.NewFluentBitHandler(clientSet)
+	clusterClient := healingHandler.NewClientSetCluster()
+	if clusterClient != nil {
+		clusterClient.NewHandlePostgresCheckingJob(postgresCheckingUseCase)
+		//healingHandler.NewFluentBitHandler(clientSet)
 	}
 
 	handler := gin.New()
-	v1.NewRouter(handler, clientSet)
+	v1.NewRouter(handler, clusterClient.ClientSet)
 
 	var countMetric = &ginprometheus.Metric{
 		ID:          "healingCount",
