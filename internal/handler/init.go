@@ -4,13 +4,15 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"log"
+
 	"onroad-k8s-auto-healing/config"
 	"onroad-k8s-auto-healing/internal/entity"
 )

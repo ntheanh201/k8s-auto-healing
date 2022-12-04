@@ -2,18 +2,19 @@ package app
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/evrone/go-clean-template/pkg/httpserver"
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus"
-	"log"
+
 	"onroad-k8s-auto-healing/config"
 	ginprometheus "onroad-k8s-auto-healing/gin-prometheus"
 	v1 "onroad-k8s-auto-healing/internal/controller/http/v1"
 	healingHandler "onroad-k8s-auto-healing/internal/handler"
 	"onroad-k8s-auto-healing/internal/usecase"
-	"os"
-	"os/signal"
-	"syscall"
 )
 
 func Run() {
@@ -27,25 +28,13 @@ func Run() {
 	clusterClient := healingHandler.NewClientSetCluster()
 	if clusterClient != nil {
 		clusterClient.NewHandlePostgresCheckingJob(postgresCheckingUseCase)
-		//healingHandler.NewFluentBitHandler(clientSet)
+		//clusterClient.NewFluentBitHandler()
 	}
 
 	handler := gin.New()
 	v1.NewRouter(handler, clusterClient.ClientSet)
 
-	var countMetric = &ginprometheus.Metric{
-		ID:          "healingCount",
-		Name:        "healing_count",
-		Description: "Test metric healing counter",
-		Type:        "counter",
-		Args:        []string{},
-	}
-
-	p := ginprometheus.NewPrometheus("", []*ginprometheus.Metric{countMetric})
-	p.Use(handler)
-
-	m := p.MetricsList[0].MetricCollector.(prometheus.Counter)
-	m.Inc()
+	ginprometheus.NewPrometheusHandler(handler)
 
 	httpServer := httpserver.New(handler, httpserver.Port(config.AppConfig.Http.Port))
 

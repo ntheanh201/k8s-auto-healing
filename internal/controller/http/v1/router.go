@@ -1,9 +1,10 @@
 package v1
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"k8s.io/client-go/kubernetes"
-	"net/http"
 )
 
 func NewRouter(handler *gin.Engine, clientSet *kubernetes.Clientset) {

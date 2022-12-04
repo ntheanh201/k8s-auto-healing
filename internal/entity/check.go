@@ -1,9 +1,10 @@
 package entity
 
 import (
-	"gorm.io/gorm"
 	"log"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type checkPostgresOrm struct {

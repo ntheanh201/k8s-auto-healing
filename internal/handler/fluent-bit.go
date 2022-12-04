@@ -3,12 +3,13 @@ package handler
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/go-co-op/gocron"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"time"
 )
 
 const (
@@ -40,12 +41,12 @@ func handleRestartFluentBit(clientSet *kubernetes.Clientset) {
 	}
 }
 
-func NewFluentBitHandler(clientSet *kubernetes.Clientset) {
+func (c *ClusterClient) NewFluentBitHandler() {
 	s := gocron.NewScheduler(time.UTC)
 
 	// run every 2 hours
 	s.Every(2).Hour().Do(func() {
-		handleRestartFluentBit(clientSet)
+		handleRestartFluentBit(c.ClientSet)
 	})
 
 	s.StartAsync()
