@@ -3,18 +3,23 @@ package handler
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/go-co-op/gocron"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"time"
 )
 
 const (
 	MonitoringNamespace = "monitoring"
 	FluentBitDaemonSet  = "fluent-bit"
 )
+
+type FluentBitHandler struct {
+	clusterClient *ClusterClient
+}
 
 func restartDaemonSetFluentBit(clientSet *kubernetes.Clientset) {
 	data := fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}},"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":"%s","maxSurge": "%s"}}}`, time.Now().String(), "25%", "25%")
@@ -40,13 +45,28 @@ func handleRestartFluentBit(clientSet *kubernetes.Clientset) {
 	}
 }
 
-func NewFluentBitHandler(clientSet *kubernetes.Clientset) {
+func NewFluentBitHandler(client *ClusterClient) *FluentBitHandler {
+	return &FluentBitHandler{clusterClient: client}
+}
+
+func (f *FluentBitHandler) StartNewJob() {
 	s := gocron.NewScheduler(time.UTC)
 
 	// run every 2 hours
 	s.Every(2).Hour().Do(func() {
-		handleRestartFluentBit(clientSet)
+		handleRestartFluentBit(f.clusterClient.ClientSet)
 	})
 
 	s.StartAsync()
 }
+
+//func (c *ClusterClient) NewFluentBitHandler() {
+//	s := gocron.NewScheduler(time.UTC)
+//
+//	// run every 2 hours
+//	s.Every(2).Hour().Do(func() {
+//		handleRestartFluentBit(c.ClientSet)
+//	})
+//
+//	s.StartAsync()
+//}

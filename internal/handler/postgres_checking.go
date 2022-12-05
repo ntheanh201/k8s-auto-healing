@@ -3,19 +3,26 @@ package handler
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/go-co-op/gocron"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+
 	"onroad-k8s-auto-healing/internal/usecase"
-	"time"
 )
 
 const (
 	PostgresNamespace        = "postgres"
 	PostgresPoolerDeployment = "ccp-postgres-pooler"
 )
+
+type PostgresCheckingHandler struct {
+	postgresCheckingUseCase usecase.PostgresChecking
+	clusterClient           *ClusterClient
+}
 
 func restartPostgresDeployment(clientSet *kubernetes.Clientset) {
 	data := fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}},"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":"%s","maxSurge": "%s"}}}`, time.Now().String(), "25%", "25%")
@@ -50,13 +57,31 @@ func handleUpsertData(clientSet *kubernetes.Clientset, p usecase.PostgresCheckin
 	fmt.Println("DB Response: ", data)
 }
 
-func (c *ClusterClient) NewHandlePostgresCheckingJob(p usecase.PostgresChecking) {
+func NewPostgresCheckingHandler(clusterClient *ClusterClient, postgresCheckingUseCase usecase.PostgresChecking) *PostgresCheckingHandler {
+	return &PostgresCheckingHandler{
+		clusterClient:           clusterClient,
+		postgresCheckingUseCase: postgresCheckingUseCase,
+	}
+}
+
+func (p *PostgresCheckingHandler) StartNewJob() {
 	s := gocron.NewScheduler(time.UTC)
 
 	// run every 5 minutes
 	s.Every(5).Minute().Do(func() {
-		handleUpsertData(c.ClientSet, p)
+		handleUpsertData(p.clusterClient.ClientSet, p.postgresCheckingUseCase)
 	})
 
 	s.StartAsync()
 }
+
+//func (c *ClusterClient) NewHandlePostgresCheckingJob(p usecase.PostgresChecking) {
+//	s := gocron.NewScheduler(time.UTC)
+//
+//	// run every 5 minutes
+//	s.Every(5).Minute().Do(func() {
+//		handleUpsertData(c.ClientSet, p)
+//	})
+//
+//	s.StartAsync()
+//}
