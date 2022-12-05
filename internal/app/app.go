@@ -24,6 +24,7 @@ func Run() {
 		return
 	}
 
+	handler := gin.New()
 	handlerRegistry := healingHandler.NewHandlerRegistry()
 
 	postgresCheckingUseCase := usecase.NewPostgresChecking(dbModule.Db.PostgresCheckingOrm)
@@ -43,14 +44,16 @@ func Run() {
 		//}
 	}
 
+	countMetricHandler := ginprometheus.NewCountMetricPrometheusHandler(handler)
+	err = handlerRegistry.RegisterHandler(countMetricHandler)
+	if err != nil {
+		log.Printf("Error register count metric handler: %v", err)
+	}
+
 	// start all handlers in registry
 	handlerRegistry.StartAll()
 
-	handler := gin.New()
 	v1.NewRouter(handler, clusterClient.ClientSet)
-
-	ginprometheus.NewPrometheusHandler(handler)
-
 	httpServer := httpserver.New(handler, httpserver.Port(config.AppConfig.Http.Port))
 
 	interrupt := make(chan os.Signal, 1)

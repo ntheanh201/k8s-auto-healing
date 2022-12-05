@@ -5,7 +5,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-func NewPrometheusHandler(h *gin.Engine) {
+type CountMetricPrometheusHandler struct {
+	h *gin.Engine
+}
+
+func NewCountMetricPrometheusHandler(engine *gin.Engine) *CountMetricPrometheusHandler {
+	return &CountMetricPrometheusHandler{h: engine}
+}
+
+func (c *CountMetricPrometheusHandler) StartNewJob() {
 	var countMetric = &Metric{
 		ID:          "healingCount",
 		Name:        "healing_count",
@@ -15,7 +23,7 @@ func NewPrometheusHandler(h *gin.Engine) {
 	}
 
 	p := NewPrometheus("", []*Metric{countMetric})
-	p.Use(h)
+	p.Use(c.h)
 
 	m := p.MetricsList[0].MetricCollector.(prometheus.Counter)
 	m.Inc()
