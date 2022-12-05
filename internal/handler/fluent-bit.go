@@ -17,6 +17,10 @@ const (
 	FluentBitDaemonSet  = "fluent-bit"
 )
 
+type FluentBitHandler struct {
+	clusterClient *ClusterClient
+}
+
 func restartDaemonSetFluentBit(clientSet *kubernetes.Clientset) {
 	data := fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}},"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":"%s","maxSurge": "%s"}}}`, time.Now().String(), "25%", "25%")
 	newDaemonSet, err := clientSet.AppsV1().DaemonSets(MonitoringNamespace).Patch(context.Background(), FluentBitDaemonSet, types.StrategicMergePatchType, []byte(data), metav1.PatchOptions{FieldManager: "kubectl-rollout"})
@@ -41,13 +45,28 @@ func handleRestartFluentBit(clientSet *kubernetes.Clientset) {
 	}
 }
 
-func (c *ClusterClient) NewFluentBitHandler() {
+func NewFluentBitHandler(client *ClusterClient) *FluentBitHandler {
+	return &FluentBitHandler{clusterClient: client}
+}
+
+func (f *FluentBitHandler) StartNewJob() {
 	s := gocron.NewScheduler(time.UTC)
 
 	// run every 2 hours
 	s.Every(2).Hour().Do(func() {
-		handleRestartFluentBit(c.ClientSet)
+		handleRestartFluentBit(f.clusterClient.ClientSet)
 	})
 
 	s.StartAsync()
 }
+
+//func (c *ClusterClient) NewFluentBitHandler() {
+//	s := gocron.NewScheduler(time.UTC)
+//
+//	// run every 2 hours
+//	s.Every(2).Hour().Do(func() {
+//		handleRestartFluentBit(c.ClientSet)
+//	})
+//
+//	s.StartAsync()
+//}

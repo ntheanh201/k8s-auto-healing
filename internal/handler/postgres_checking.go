@@ -19,6 +19,11 @@ const (
 	PostgresPoolerDeployment = "ccp-postgres-pooler"
 )
 
+type PostgresCheckingHandler struct {
+	postgresCheckingUseCase usecase.PostgresChecking
+	clusterClient           *ClusterClient
+}
+
 func restartPostgresDeployment(clientSet *kubernetes.Clientset) {
 	data := fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kubectl.kubernetes.io/restartedAt":"%s"}}}},"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":"%s","maxSurge": "%s"}}}`, time.Now().String(), "25%", "25%")
 	newDeployment, err := clientSet.AppsV1().Deployments(PostgresNamespace).Patch(context.Background(), PostgresPoolerDeployment, types.StrategicMergePatchType, []byte(data), metav1.PatchOptions{FieldManager: "kubectl-rollout"})
@@ -52,13 +57,31 @@ func handleUpsertData(clientSet *kubernetes.Clientset, p usecase.PostgresCheckin
 	fmt.Println("DB Response: ", data)
 }
 
-func (c *ClusterClient) NewHandlePostgresCheckingJob(p usecase.PostgresChecking) {
+func NewPostgresCheckingHandler(clusterClient *ClusterClient, postgresCheckingUseCase usecase.PostgresChecking) *PostgresCheckingHandler {
+	return &PostgresCheckingHandler{
+		clusterClient:           clusterClient,
+		postgresCheckingUseCase: postgresCheckingUseCase,
+	}
+}
+
+func (p *PostgresCheckingHandler) StartNewJob() {
 	s := gocron.NewScheduler(time.UTC)
 
 	// run every 5 minutes
 	s.Every(5).Minute().Do(func() {
-		handleUpsertData(c.ClientSet, p)
+		handleUpsertData(p.clusterClient.ClientSet, p.postgresCheckingUseCase)
 	})
 
 	s.StartAsync()
 }
+
+//func (c *ClusterClient) NewHandlePostgresCheckingJob(p usecase.PostgresChecking) {
+//	s := gocron.NewScheduler(time.UTC)
+//
+//	// run every 5 minutes
+//	s.Every(5).Minute().Do(func() {
+//		handleUpsertData(c.ClientSet, p)
+//	})
+//
+//	s.StartAsync()
+//}

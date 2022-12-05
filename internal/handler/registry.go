@@ -7,21 +7,21 @@ import (
 )
 
 type Handler interface {
-	Start()
+	StartNewJob()
 }
 
-type HandlerRegistry struct {
+type Registry struct {
 	handlers     map[reflect.Type]Handler
 	handlerTypes []reflect.Type
 }
 
-func NewHandlerRegistry() *HandlerRegistry {
-	return &HandlerRegistry{
+func NewHandlerRegistry() *Registry {
+	return &Registry{
 		handlers: make(map[reflect.Type]Handler),
 	}
 }
 
-func (r *HandlerRegistry) RegisterHandler(handler Handler) error {
+func (r *Registry) RegisterHandler(handler Handler) error {
 	kind := reflect.TypeOf(handler)
 	if _, ok := r.handlers[kind]; ok {
 		return fmt.Errorf("handler already exists: %v", kind)
@@ -31,11 +31,11 @@ func (r *HandlerRegistry) RegisterHandler(handler Handler) error {
 	return nil
 }
 
-func (r *HandlerRegistry) StartAll() {
+func (r *Registry) StartAll() {
 	log.Printf("Starting %d handlers: %v\n", len(r.handlerTypes), r.handlerTypes)
 	for _, kind := range r.handlerTypes {
-		log.Printf("Starting service type %v\n", kind)
-		go r.handlers[kind].Start()
+		log.Printf("Starting handler type %v\n", kind)
+		go r.handlers[kind].StartNewJob()
 	}
 }
 
